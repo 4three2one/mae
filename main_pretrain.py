@@ -21,10 +21,11 @@ import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-
+import torchvision
+from torch.utils.data import RandomSampler
 import timm
 
-assert timm.__version__ == "0.3.2"  # version check
+#assert timm.__version__ == "0.3.2"  # version check
 import timm.optim.optim_factory as optim_factory
 
 import util.misc as misc
@@ -44,7 +45,7 @@ def get_args_parser():
                         help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
 
     # Model parameters
-    parser.add_argument('--model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
+    parser.add_argument('--model', default='mae_vit_base_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
 
     parser.add_argument('--input_size', default=224, type=int,
@@ -72,7 +73,7 @@ def get_args_parser():
                         help='epochs to warmup LR')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/datasets01/imagenet_full_size/061417/', type=str,
+    parser.add_argument('--data_path', default='/media/xjw/ssk_data/plant/PlantVillage_full', type=str,
                         help='dataset path')
 
     parser.add_argument('--output_dir', default='./output_dir',
@@ -100,9 +101,32 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
-
+    parser.add_argument('--num_samples', default=3, type=int)
     return parser
+def tensor2im(input_image, imtype=np.uint8):
+    """"将tensor的数据类型转成numpy类型，并反归一化.
 
+    Parameters:
+        input_image (tensor) --  输入的图像tensor数组
+        imtype (type)        --  转换后的numpy的数据类型
+    """
+    mean = [0.485,0.456,0.406] #自己设置的
+    std = [0.229,0.224,0.225]  #自己设置的
+    if not isinstance(input_image, np.ndarray):
+        if isinstance(input_image, torch.Tensor):  # get the data from a variable
+            image_tensor = input_image.data
+        else:
+            return input_image
+        image_numpy = image_tensor.cpu().float().numpy()  # convert it into a numpy array
+        if image_numpy.shape[0] == 1:  # grayscale to RGB
+            image_numpy = np.tile(image_numpy, (3, 1, 1))
+        for i in range(len(mean)):
+            image_numpy[i] = image_numpy[i] * std[i] + mean[i]
+        image_numpy = image_numpy * 255
+        image_numpy = np.transpose(image_numpy, (1, 2, 0))  # post-processing: tranpose and scaling
+    else:  # if it is a numpy array, do nothing
+        image_numpy = input_image
+    return image_numpy.astype(imtype)
 
 def main(args):
     misc.init_distributed_mode(args)
@@ -125,6 +149,12 @@ def main(args):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+    transform_val = transforms.Compose([
+        transforms.RandomResizedCrop(args.input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
     dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
     print(dataset_train)
 
@@ -140,7 +170,9 @@ def main(args):
 
     if global_rank == 0 and args.log_dir is not None:
         os.makedirs(args.log_dir, exist_ok=True)
-        log_writer = SummaryWriter(log_dir=args.log_dir)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        suffix=f"-pretrain-{now}"
+        log_writer = SummaryWriter(log_dir=args.log_dir, filename_suffix=suffix)
     else:
         log_writer = None
 
@@ -207,6 +239,22 @@ def main(args):
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
+
+        if args.output_dir :
+            dataset_val = datasets.ImageFolder(os.path.join(args.data_path, 'val'), transform=transform_val)
+            model.eval()
+            with torch.no_grad():
+                    sampler = RandomSampler(dataset_val, replacement=True, num_samples=args.num_samples)
+                    # val_img = torch.stack([dataset_val[i][0] ford i in range(len(dataset_val))]).to(device)
+                    val_img = torch.stack([dataset_val[i][0] for i in sampler]).to(device)
+                    _, pred, mask = model(val_img, mask_ratio=args.mask_ratio)
+                    pred_img = model.unpatchify(pred)
+                    mask_img = model.unpatchify(model.patchify(val_img) * (1 - mask).unsqueeze(2))
+                    compare_img = torch.cat([val_img, mask_img, pred_img], dim=0)
+                    im_grid = torchvision.utils.make_grid(compare_img, args.num_samples, padding=2)  # 将batchsize的图合成一张图
+                    im_numpy = tensor2im(im_grid)  # 转成numpy类型并反归一化
+                    log_writer.add_image(f"vi", im_numpy.transpose((2, 0, 1)), global_step=epoch)
+                    model.train()
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
