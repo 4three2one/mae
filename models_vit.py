@@ -15,12 +15,12 @@ import torch
 import torch.nn as nn
 
 import timm.models.vision_transformer
-
+from models_mae import Block
 
 class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
     """ Vision Transformer with support for global average pooling
     """
-    def __init__(self, global_pool=False, **kwargs):
+    def __init__(self, global_pool=False,depth=12, **kwargs):
         super(VisionTransformer, self).__init__(**kwargs)
 
         self.global_pool = global_pool
@@ -30,6 +30,10 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             self.fc_norm = norm_layer(embed_dim)
 
             del self.norm  # remove the original norm
+
+        self.blocks = nn.ModuleList([
+            Block(dim=kwargs['embed_dim'], num_heads=kwargs['num_heads'], mlp_ratio=kwargs['mlp_ratio'], qkv_bias=True, norm_layer=kwargs['norm_layer'])
+            for i in range(depth)])
 
     def forward_features(self, x):
         B = x.shape[0]
