@@ -19,16 +19,25 @@ from timm.models.layers import DropPath
 
 from util.pos_embed import get_2d_sincos_pos_embed
 from aft_pytorch import AFTSimple
+from linformer import LinformerSelfAttention
+attn_type='linear'
+
 
 class Block(timm.models.vision_transformer.Block):
-    def __init__(self, **kwargs):
+    def __init__(self,seq_len,**kwargs):
         super(Block,self).__init__(**kwargs)
-        self.attn=AFTSimple(
-            max_seqlen=50,
-            dim=kwargs['dim'],
-            hidden_dim=64
-        )
-
+        if attn_type=='aft':
+            self.attn=AFTSimple(
+                max_seqlen=50,
+                dim=kwargs['dim'],
+                hidden_dim=64
+            )
+        if attn_type == 'linear':
+            self.attn = LinformerSelfAttention(
+                dim=kwargs['dim'],
+                seq_len=seq_len,
+                num_heads=kwargs['num_heads']
+            )
 
 class MaskedAutoencoderViT(nn.Module):
     """ Masked Autoencoder with VisionTransformer backbone
@@ -48,7 +57,7 @@ class MaskedAutoencoderViT(nn.Module):
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)  # fixed sin-cos embedding
 
         self.blocks = nn.ModuleList([
-            Block(dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=True,norm_layer=norm_layer)
+            Block(dim=embed_dim, num_heads=num_heads,seq_len=50, mlp_ratio=mlp_ratio, qkv_bias=True,norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
         # --------------------------------------------------------------------------
@@ -62,7 +71,7 @@ class MaskedAutoencoderViT(nn.Module):
         self.decoder_pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, decoder_embed_dim), requires_grad=False)  # fixed sin-cos embedding
 
         self.decoder_blocks = nn.ModuleList([
-            Block(dim=decoder_embed_dim, num_heads=decoder_embed_dim, mlp_ratio=mlp_ratio, qkv_bias=True, norm_layer=norm_layer)
+            Block(dim=decoder_embed_dim, num_heads=decoder_embed_dim,seq_len=197, mlp_ratio=mlp_ratio, qkv_bias=True, norm_layer=norm_layer)
             for i in range(decoder_depth)])
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
@@ -160,7 +169,7 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward_encoder(self, x, mask_ratio):
         # embed patches
-        x = self.patch_embed(x)
+        x = self.patch_embed(x)# (2,3,224,224)--> (2,196,768)
 
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]
