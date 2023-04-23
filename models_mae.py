@@ -23,7 +23,7 @@ from linformer import LinformerSelfAttention
 
 
 
-attn_type='aft-full'
+attn_type='aft-local'
 
 
 class Block(timm.models.vision_transformer.Block):
@@ -37,6 +37,12 @@ class Block(timm.models.vision_transformer.Block):
             )
         if attn_type == 'aft-full':
             self.attn = AFTFull(
+                max_seqlen=197,
+                dim=kwargs['dim'],
+                hidden_dim=64
+            )
+        if attn_type == 'aft-local':
+            self.attn = AFTLocal(
                 max_seqlen=197,
                 dim=kwargs['dim'],
                 hidden_dim=64
