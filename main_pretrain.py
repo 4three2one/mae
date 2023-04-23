@@ -35,7 +35,7 @@ import models_mae
 
 from engine_pretrain import train_one_epoch
 
-
+out_suffix='aft-simple-mask70'
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     parser.add_argument('--batch_size', default=64, type=int,
@@ -51,7 +51,7 @@ def get_args_parser():
     parser.add_argument('--input_size', default=224, type=int,
                         help='images input size')
 
-    parser.add_argument('--mask_ratio', default=0.75, type=float,
+    parser.add_argument('--mask_ratio', default=0.70, type=float,
                         help='Masking ratio (percentage of removed patches).')
 
     parser.add_argument('--norm_pix_loss', action='store_true',
@@ -73,12 +73,12 @@ def get_args_parser():
                         help='epochs to warmup LR')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/media/xjw/ssk_data/plant/PlantVillage_full', type=str,
+    parser.add_argument('--data_path', default="/home/wjxy/Downloads/leaf_full/", type=str,
                         help='dataset path')
 
-    parser.add_argument('--output_dir', default='./output_dir',
+    parser.add_argument('--output_dir', default=f'./output_dir_{out_suffix}',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default='./output_dir',
+    parser.add_argument('--log_dir', default=f'./output_dir_{out_suffix}',
                         help='path where to tensorboard log')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -253,7 +253,7 @@ def main(args):
                     compare_img = torch.cat([val_img, mask_img, pred_img], dim=0)
                     im_grid = torchvision.utils.make_grid(compare_img, args.num_samples, padding=2)  # 将batchsize的图合成一张图
                     im_numpy = tensor2im(im_grid)  # 转成numpy类型并反归一化
-                    log_writer.add_image(f"vi", im_numpy.transpose((2, 0, 1)), global_step=epoch)
+                    log_writer.add_image(f"image_compare", im_numpy.transpose((2, 0, 1)), global_step=epoch)
                     model.train()
 
     total_time = time.time() - start_time
