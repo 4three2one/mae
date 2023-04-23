@@ -18,17 +18,26 @@ from timm.models.vision_transformer import PatchEmbed, Mlp
 from timm.models.layers import DropPath
 
 from util.pos_embed import get_2d_sincos_pos_embed
-from aft_pytorch import AFTSimple
+from aft_pytorch import *
 from linformer import LinformerSelfAttention
-attn_type='linear'
+
+
+
+attn_type='aft-full'
 
 
 class Block(timm.models.vision_transformer.Block):
     def __init__(self,seq_len,**kwargs):
         super(Block,self).__init__(**kwargs)
-        if attn_type=='aft':
+        if attn_type=='aft-simple':
             self.attn=AFTSimple(
                 max_seqlen=50,
+                dim=kwargs['dim'],
+                hidden_dim=64
+            )
+        if attn_type == 'aft-full':
+            self.attn = AFTFull(
+                max_seqlen=197,
                 dim=kwargs['dim'],
                 hidden_dim=64
             )
