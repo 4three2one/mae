@@ -10,7 +10,7 @@
 # --------------------------------------------------------
 
 from functools import partial
-
+import math
 import torch
 import torch.nn as nn
 import timm
@@ -23,7 +23,7 @@ from linformer import LinformerSelfAttention
 
 
 
-attn_type='aft-local'
+attn_type='aft-simple'
 
 
 class Block(timm.models.vision_transformer.Block):
@@ -155,6 +155,19 @@ class MaskedAutoencoderViT(nn.Module):
         imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
         return imgs
 
+    def rand_by_row(self,x, mask_ratio):
+        N, L, D = x.shape
+        patch_num = int(math.sqrt(L))
+        row_keep_num = int(patch_num * (1 - mask_ratio))
+        noise = torch.rand(N, patch_num, patch_num, device=x.device)  # noise in [0, 1]
+        # sort noise for each sample
+        ids_shuffle = torch.argsort(noise, dim=2)  # ascend: small is keep, large is remove
+        ids_shuffle = ids_shuffle[:, :, :row_keep_num]
+        addition = torch.arange(0, patch_num * patch_num, patch_num, dtype=ids_shuffle.dtype,
+                                device=ids_shuffle.device).view(patch_num, 1).repeat(1, row_keep_num)
+        ids_shuffle = ids_shuffle + addition
+        return ids_shuffle.flatten().reshape(N, -1)
+
     def random_masking(self, x, mask_ratio):
         """
         Perform per-sample random masking by per-sample shuffling.
@@ -168,6 +181,9 @@ class MaskedAutoencoderViT(nn.Module):
         
         # sort noise for each sample
         ids_shuffle = torch.argsort(noise, dim=1)  # ascend: small is keep, large is remove
+        #my_ids_shuffle
+        my_shuffle=self.rand_by_row(x,mask_ratio)
+        ids_shuffle[:,:my_shuffle.size()[1]]=my_shuffle
         ids_restore = torch.argsort(ids_shuffle, dim=1)
 
         # keep the first subset
