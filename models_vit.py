@@ -32,7 +32,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             del self.norm  # remove the original norm
 
         self.blocks = nn.ModuleList([
-            Block(dim=kwargs['embed_dim'], num_heads=kwargs['num_heads'], mlp_ratio=kwargs['mlp_ratio'], qkv_bias=True, norm_layer=kwargs['norm_layer'])
+            Block(seq_len=50,dim=kwargs['embed_dim'], num_heads=kwargs['num_heads'], mlp_ratio=kwargs['mlp_ratio'], qkv_bias=True, norm_layer=kwargs['norm_layer'])
             for i in range(depth)])
 
     def forward_features(self, x):
