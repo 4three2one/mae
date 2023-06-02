@@ -8,7 +8,7 @@ import random
 from tqdm import  tqdm
 
 
-source="/media/xjw/ssk_data/plant/tomota_leaves_csdn/*"
+source="/home/wjxy/Downloads/tomota_leaf_csdn/*"
 root=os.path.split(source)[0]
 target_train=f"{root}_tomato_tv/train"
 target_val=f"{root}_tomato_tv/val"

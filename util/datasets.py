@@ -15,7 +15,8 @@ from torchvision import datasets, transforms
 
 from timm.data import create_transform
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-
+from utils.my_dataset import *
+from utils.utils import read_split_data, train_one_epoch, evaluate
 
 def build_dataset(is_train, args):
     transform = build_transform(is_train, args)
@@ -27,6 +28,25 @@ def build_dataset(is_train, args):
 
     return dataset
 
+def build_dataset_mine(args):
+    transform_train = build_transform(True, args)
+    transform_val = build_transform(False, args)
+    if args.dataset_name.startswith("plant"):
+        train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(args.data_path)
+        # 实例化训练数据集
+        train_dataset = MyDataSet(images_path=train_images_path,
+                                  images_class=train_images_label,
+                                  transform=transform_train)
+
+        # 实例化验证数据集
+        val_dataset = MyDataSet(images_path=val_images_path,
+                                images_class=val_images_label,
+                                transform=transform_val)
+    if args.dataset_name.startswith("IP102"):
+        train_dataset = IP102(txt_path=os.path.join(args.data_path, "train_new.txt"), transform=transform_train)
+        val_dataset = IP102(txt_path=os.path.join(args.data_path, "test_new.txt"), transform=transform_val)
+
+    return train_dataset,val_dataset
 
 def build_transform(is_train, args):
     mean = IMAGENET_DEFAULT_MEAN

@@ -34,8 +34,8 @@ from util.datasets import build_dataset_mine
 from util.pos_embed import interpolate_pos_embed
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 
-import models_vit
 import models_vit_origin
+#import models_vit_origin
 
 from engine_finetune import train_one_epoch, evaluate
 

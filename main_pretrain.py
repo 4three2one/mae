@@ -35,12 +35,12 @@ import models_mae
 
 from engine_pretrain import train_one_epoch
 
-out_suffix='aft-simple-mask70'
+out_suffix='aft-simple-mask75-imagenet'
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
     parser.add_argument('--batch_size', default=64, type=int,
                         help='Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus')
-    parser.add_argument('--epochs', default=400, type=int)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--accum_iter', default=1, type=int,
                         help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
 
@@ -51,7 +51,7 @@ def get_args_parser():
     parser.add_argument('--input_size', default=224, type=int,
                         help='images input size')
 
-    parser.add_argument('--mask_ratio', default=0.70, type=float,
+    parser.add_argument('--mask_ratio', default=0.75, type=float,
                         help='Masking ratio (percentage of removed patches).')
 
     parser.add_argument('--norm_pix_loss', action='store_true',
@@ -73,12 +73,12 @@ def get_args_parser():
                         help='epochs to warmup LR')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default="/home/wjxy/Downloads/leaf_full/", type=str,
+    parser.add_argument('--data_path', default="/home/wjxy/Downloads/ILSVRC2012_img_train_tv/", type=str,
                         help='dataset path')
 
-    parser.add_argument('--output_dir', default=f'./output_dir_{out_suffix}',
+    parser.add_argument('--output_dir', default=f'./output_dir/{out_suffix}',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default=f'./output_dir_{out_suffix}',
+    parser.add_argument('--log_dir', default=f'./output_dir/{out_suffix}',
                         help='path where to tensorboard log')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -86,7 +86,7 @@ def get_args_parser():
     parser.add_argument('--resume', default='',
                         help='resume from checkpoint')
 
-    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
+    parser.add_argument('--start_epoch', default=30, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--num_workers', default=10, type=int)
     parser.add_argument('--pin_mem', action='store_true',
@@ -101,7 +101,7 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
-    parser.add_argument('--num_samples', default=3, type=int)
+    parser.add_argument('--num_samples', default=4, type=int)
     return parser
 def tensor2im(input_image, imtype=np.uint8):
     """"将tensor的数据类型转成numpy类型，并反归一化.
@@ -226,10 +226,10 @@ def main(args):
             log_writer=log_writer,
             args=args
         )
-        if args.output_dir and (epoch % 20 == 0 or epoch + 1 == args.epochs):
+        if args.output_dir and (epoch % 2 == 0):#and epoch>=100:
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch)
+                loss_scaler=loss_scaler, epoch=epoch,suffix=out_suffix)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                         'epoch': epoch,}

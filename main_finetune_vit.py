@@ -34,14 +34,14 @@ from util.datasets import build_dataset_mine
 from util.pos_embed import interpolate_pos_embed
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 
-import models_vit
 import models_vit_origin
+#import models_vit_origin
 
 from engine_finetune import train_one_epoch, evaluate
 
 
 out_suffix='vit'
-dataset_name="plantvillage"
+dataset_name="IP102"
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE fine-tuning for image classification', add_help=False)
     parser.add_argument('--batch_size', default=32, type=int,
@@ -120,9 +120,11 @@ def get_args_parser():
                         help='Use class token instead of global pool for classification')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/home/wjxy/Downloads/PlantVillage', type=str,
+    parser.add_argument('--data_path', default='/home/wjxy/Downloads/ip102_v1.1-001/ip102_v1.1', type=str,
                         help='dataset path')
-    parser.add_argument('--nb_classes', default=38, type=int,
+    parser.add_argument('--dataset_name', default='IP102', type=str,
+                        help='dataset path')
+    parser.add_argument('--nb_classes', default=102, type=int,
                         help='number of the classification types')
 
     parser.add_argument('--output_dir', default=f'./output/finetune/{dataset_name}/{out_suffix}',
