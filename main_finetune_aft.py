@@ -40,8 +40,8 @@ import models_vit
 from engine_finetune import train_one_epoch, evaluate
 
 
-out_suffix='aft'
-dataset_name="IP102"
+out_suffix='aft-epch100'
+dataset_name="PlantDoc"
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE fine-tuning for image classification', add_help=False)
     parser.add_argument('--batch_size', default=64, type=int,
@@ -112,7 +112,7 @@ def get_args_parser():
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # * Finetuning params
-    parser.add_argument('--finetune', default=f'output_dir/aft-simple-mask75-imagenet/checkpoint-30.pth',
+    parser.add_argument('--finetune', default=f'output_dir/aft-simple-mask75-imagenet/checkpoint-98.pth',
                         help='finetune from checkpoint')
     parser.add_argument('--global_pool', action='store_true')
     parser.set_defaults(global_pool=True)
@@ -120,9 +120,9 @@ def get_args_parser():
                         help='Use class token instead of global pool for classification')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/home/wjxy/Downloads/ip102_v1.1-001/ip102_v1.1', type=str,
+    parser.add_argument('--data_path', default='/home/wjxy/Downloads/PlantDoc-Dataset-master', type=str,
                         help='dataset path')
-    parser.add_argument('--dataset_name', default='IP102', type=str,
+    parser.add_argument('--dataset_name', default='PlantDoc', type=str,
                         help='dataset path')
     parser.add_argument('--nb_classes', default=102, type=int,
                         help='number of the classification types')

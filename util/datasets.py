@@ -31,7 +31,13 @@ def build_dataset(is_train, args):
 def build_dataset_mine(args):
     transform_train = build_transform(True, args)
     transform_val = build_transform(False, args)
-    if args.dataset_name.startswith("plant"):
+    if args.dataset_name.startswith("PlantDoc"):
+        root_train = os.path.join(args.data_path, 'train')
+        train_dataset = datasets.ImageFolder(root_train, transform=transform_train)
+        root_val = os.path.join(args.data_path, 'val')
+        val_dataset = datasets.ImageFolder(root_val, transform=transform_train)
+
+    if args.dataset_name.startswith("plantv"):
         train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(args.data_path)
         # 实例化训练数据集
         train_dataset = MyDataSet(images_path=train_images_path,
