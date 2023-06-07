@@ -63,3 +63,33 @@ class IP102(Dataset):
         images = torch.stack(images, dim=0)
         labels = torch.as_tensor(labels)
         return images, labels
+
+
+class DeepWeeds(Dataset):
+    def __init__(self,csv_path,transform=None):
+        self.transform=transform
+        import pandas as pd
+        data = pd.read_csv(csv_path)
+        self.img_list = [os.path.join(os.path.dirname(csv_path), "images", name) for name in data["Filename"].tolist()]
+        self.label_list = [label for label in data["Label"].tolist()]
+    def __getitem__(self, index):
+        img_path=self.img_list[index]
+        label=self.label_list[index]
+        img=Image.open(img_path)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, int(label)
+    def __len__(self):
+        return len(self.img_list)
+
+    @staticmethod
+    def collate_fn(batch):
+        # 官方实现的default_collate可以参考
+        # https://github.com/pytorch/pytorch/blob/67b7e751e6b5931a9f45274653f4f653a4e6cdf6/torch/utils/data/_utils/collate.py
+        images, labels = tuple(zip(*batch))
+
+        images = torch.stack(images, dim=0)
+        labels = torch.as_tensor(labels)
+        return images, labels

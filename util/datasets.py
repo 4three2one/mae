@@ -52,6 +52,9 @@ def build_dataset_mine(args):
         train_dataset = IP102(txt_path=os.path.join(args.data_path, "train_new.txt"), transform=transform_train)
         val_dataset = IP102(txt_path=os.path.join(args.data_path, "test_new.txt"), transform=transform_val)
 
+    if args.dataset_name.startswith("deepweeds"):
+        train_dataset = DeepWeeds(csv_path=os.path.join(args.data_path, "train.csv"), transform=transform_train)
+        val_dataset = DeepWeeds(csv_path=os.path.join(args.data_path, "test.csv"), transform=transform_val)
     return train_dataset,val_dataset
 
 def build_transform(is_train, args):
